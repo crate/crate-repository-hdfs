@@ -1,0 +1,196 @@
+description = 'Crate HDFS Repository'
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url 'http://repo.spring.io/plugins-release' }
+
+    }
+    dependencies {
+        classpath("org.springframework.build.gradle:propdeps-plugin:0.0.7")
+    }
+}
+
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'findbugs'
+apply plugin: 'jacoco'
+apply plugin: 'propdeps'
+apply plugin: 'propdeps-idea'
+apply from: "$rootDir/dist.gradle"
+
+
+group = "io.crate"
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+configurations {
+    provided
+    hadoop1
+    hadoop2
+}
+
+dependencies {
+    provided("org.apache.hadoop:hadoop-core:$hadoop12Version")
+    provided("io.crate:crate:$crateVersion")
+    testCompile "io.crate:crate:$crateVersion"
+    testCompile "org.apache.lucene:lucene-test-framework:$luceneVersion"
+
+    hadoop1("org.apache.hadoop:hadoop-core:$hadoop12Version") {
+        exclude module: "commons-cli"
+        exclude group: "com.sun.jersey"
+        exclude group: "org.mortbay.jetty"
+        exclude group: "tomcat"
+        exclude module: "commons-el"
+        exclude module: "hsqldb"
+        exclude group: "org.eclipse.jdt"
+        exclude module: "commons-beanutils"
+    }
+
+    hadoop2("org.apache.hadoop:hadoop-client:$hadoop2Version") {
+        exclude group: "com.sun.jersey"
+        exclude group: "com.sun.jersey.contribs"
+        exclude group: "com.sun.jersey.jersey-test-framework"
+        exclude module: "guice"
+        exclude group: "org.mortbay.jetty"
+        exclude group: "tomcat"
+        exclude module: "commons-el"
+        exclude module: "hsqldb"
+        exclude group: "org.eclipse.jdt"
+        exclude module: "commons-beanutils"
+        exclude module: "javax.servlet"
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+    test {
+        resources {
+            srcDir 'src/test/java'
+        }
+    }
+}
+
+def download (String url, String name){
+    downloadDir.mkdirs()
+    def dest = new File(downloadDir, name)
+    ant.get(
+            src: url,
+            verbose: true,
+            usetimestamp: true,
+            skipexisting: true,
+            dest: dest
+    )
+    return dest;
+}
+
+def extractTopfolder(File src, String trg){
+    // delete target folder. Otherwise old files will stick around and lead to strange errors
+    new File(trg).delete()
+
+    copy {
+        includeEmptyDirs = false
+        FileTree ft
+        if(src.name.endsWith('.zip')) {
+            ft = zipTree(src)
+        }
+        if(src.name.endsWith('.tar.gz')) {
+            ft = tarTree(src)
+        }
+        from(ft) {
+            eachFile { details ->
+                details.path =
+                        details.path.substring(details.relativePath.segments[0].length())
+            }
+        }
+        into trg
+    }
+}
+
+task downloadCrateRelease << {
+    def dest = download(
+            "https://cdn.crate.io/downloads/releases/crate-${crateVersion}.tar.gz",
+            "crate-${crateVersion}.tar.gz")
+    extractTopfolder(dest, 'parts/crate')
+}
+
+task deleteCrateDownloadFolder(type: Delete) {
+    delete "${project.rootDir}/parts/crate"
+}
+
+task copyUpstreamSource << {
+    if (!file('src/main/java').exists()) {
+        copy {
+            from 'upstream/repository-hdfs/src/main/java'
+            into 'src/main/java'
+
+            // un-shade guice imports
+            filter { line ->
+                line.replaceAll("org\\.elasticsearch\\.common\\.collect(.*)","com.google.common.collect\$1")
+            }
+            // make it a crate plugin
+            filter { line ->
+                line.replaceAll("org\\.elasticsearch\\.plugins\\.AbstractPlugin", "io.crate.plugin.AbstractPlugin")
+            }
+        }
+    }
+}
+
+task copyJarToClassPath(type: Copy) {
+    dependsOn jar, downloadCrateRelease
+    from "build/libs/crate-repository-hdfs-${version}.jar"
+    into 'parts/crate/plugins'
+}
+
+ext {
+    downloadDir = new File(rootDir, 'downloads')
+}
+
+
+test {
+    // show standard out and standard error of the test JVM(s) on the console
+    testLogging.showStandardStreams = true
+    outputs.upToDateWhen { false }
+
+    dependsOn downloadCrateRelease, copyJarToClassPath
+}
+
+clean {
+    dependsOn deleteCrateDownloadFolder
+}
+
+compileJava {
+    dependsOn copyUpstreamSource
+}
+
+
+
+idea {
+    project {
+        languageLevel = 'JDK_1_7'
+
+        ipr {
+            withXml { provider ->
+                def node = provider.asNode()
+                def copyrightManager = node.component.find { it.'@name' == 'CopyrightManager' }
+                copyrightManager.@default = "CrateASL2"
+                def aslCopyright = copyrightManager.copyright.find { it.option.find { it.@name == "myName" }?.@value == "CrateASL2" }
+                if (aslCopyright == null) {
+                    copyrightManager.append(new XmlParser().parse(file("copyright.xml")))
+                }
+            }
+        }
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.3'
+}

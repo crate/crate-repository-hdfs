@@ -1,0 +1,134 @@
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+
+task getVersion ( dependsOn: 'classes') << {
+    ext.gitTag = "git describe".execute().in.text.trim()
+
+    if (!gradle.taskGraph.hasTask(uploadArchives)) {
+        ext.version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
+    }
+
+    logger.quiet("gitTag: " + gitTag)
+    logger.quiet("version: " + version)
+}
+
+
+jar.dependsOn getVersion
+jar {
+    baseName 'crate-repository-hdfs'
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate.IO HDFS Repository", "Implementation-Version": project.version)
+        }
+    }
+}
+
+
+task myJavadocs(type: Javadoc, dependsOn: processResources) {
+    classpath = configurations.compile
+    source = sourceSets.main.allJava
+}
+
+task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
+    classifier = 'javadoc'
+    from myJavadocs.destinationDir
+    manifest {
+        attributes("Implementation-Title": "Crate.IO JDBC Driver")
+    }
+}
+
+task buildJavadocJar (dependsOn: [getVersion, myJavadocs] ) << {
+    ext.version = getVersion.version
+    project.version = ext.version
+    tasks.javadocJar.execute()
+}
+
+task sourceJar (type : Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+    manifest {
+        attributes("Implementation-Title": "Crate.IO JDBC Driver")
+    }
+}
+
+task buildSourceJar (dependsOn: [getVersion] ) << {
+    ext.version = getVersion.version
+    project.version = ext.version
+    tasks.sourceJar.execute()
+}
+
+artifacts {
+    archives jar
+    archives javadocJar
+    archives sourceJar
+}
+
+task signJars (type : Sign, dependsOn: [jar, buildJavadocJar, buildSourceJar]) {
+    sign configurations.archives
+}
+
+install.dependsOn([jar, buildJavadocJar, buildSourceJar])
+install {
+    repositories {
+        mavenInstaller {
+            addFilter('crate-repository-hdfs') {artifact, file ->
+                artifact.name == 'crate-repository-hdfs'
+            }
+        }
+    }
+}
+
+project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
+project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
+project.ext.url = 'https://crate.io'
+project.ext.scm = {
+    url 'https://github.com/crate/crate-repository-hdfs'
+    connection 'scm:git:git://github.com/crate/crate-repository-hdfs.git'
+    developerConnection 'scm:git:ssh:git@github.com:crate/crate-repository-hdfs.git'
+}
+project.ext.licenses = {
+    license {
+        name 'The Apache Software License, Version 2.0'
+        url 'http://www.apache.org/license/LICENSE-2.0.txt'
+        distribution 'repo'
+    }
+}
+project.ext.developers = {
+    developer {
+        id 'crate'
+        name 'Crate Developers'
+        email 'office@crate.io'
+    }
+}
+
+uploadArchives.dependsOn([signJars])
+uploadArchives {
+    repositories{
+        mavenDeployer {
+            beforeDeployment {
+                MavenDeployment deployment -> signing.signPom(deployment)
+                    if (project.ext.bintrayUsername.length() == 0 || project.ext.bintrayPassword.length() == 0) {
+                        throw new StopExecutionException("uploadArchives cannot be called without bintray username and password")
+                    }
+            }
+
+            MavenPom pomJdbc = addFilter('crate-repository-hdfs') {artifact, file ->
+                artifact.name == 'crate-repository-hdfs'
+            }
+            pomJdbc.project {
+                artifactId 'crate-repository-hdfs'
+                name 'crate-repository-hdfs'
+                description 'Crate.IO HDFS Repository'
+                url project.ext.url
+                scm project.ext.scm
+                licenses project.ext.licenses
+                developers project.ext.developers
+            }
+
+            repository(id: 'crate-repository-hdfs', url: 'https://api.bintray.com/maven/crate/crate/crate-repository-hdfs') {
+                authentication(userName: project.ext.bintrayUsername, password: project.ext.bintrayPassword)
+            }
+        }
+    }
+}
