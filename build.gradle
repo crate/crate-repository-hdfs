@@ -20,9 +20,6 @@ apply plugin: 'propdeps'
 apply plugin: 'propdeps-idea'
 apply from: "$rootDir/dist.gradle"
 
-
-group = "io.crate"
-
 repositories {
     mavenCentral()
     jcenter()
@@ -39,16 +36,19 @@ dependencies {
     provided("io.crate:crate:$crateVersion")
     testCompile "io.crate:crate:$crateVersion"
     testCompile "org.apache.lucene:lucene-test-framework:$luceneVersion"
+    testCompile "org.hamcrest:hamcrest-all:$hamcrestVersion"
 
     hadoop1("org.apache.hadoop:hadoop-core:$hadoop12Version") {
-        exclude module: "commons-cli"
         exclude group: "com.sun.jersey"
         exclude group: "org.mortbay.jetty"
         exclude group: "tomcat"
-        exclude module: "commons-el"
         exclude module: "hsqldb"
         exclude group: "org.eclipse.jdt"
-        exclude module: "commons-beanutils"
+        exclude group: "commons-beanutils"
+        exclude group: "org.apache.commons"
+        exclude module: "commons-cli"
+        exclude module: "commons-codec"
+        exclude module: "commons-logging"
     }
 
     hadoop2("org.apache.hadoop:hadoop-client:$hadoop2Version") {
@@ -63,6 +63,18 @@ dependencies {
         exclude group: "org.eclipse.jdt"
         exclude module: "commons-beanutils"
         exclude module: "javax.servlet"
+        exclude module: "hadoop-mapreduce-client-app"
+        exclude module: "hadoop-mapreduce-client-core"
+        exclude module: "hadoop-mapreduce-client-jobclient"
+        exclude module: "hadoop-yarn-api"
+        exclude group: "com.google.guava"
+        exclude module: "commons-cli"
+        exclude module: "commons-codec"
+        exclude module: "commons-logging"
+        exclude module: "commons-math3"
+        exclude group: "log4j"
+        exclude group: "org.slf4j"
+        exclude group: "org.apache.httpcomponents"
     }
 }
 
@@ -144,27 +156,58 @@ task copyUpstreamSource << {
     }
 }
 
-task copyJarToClassPath(type: Copy) {
-    dependsOn jar, downloadCrateRelease
-    from "build/libs/crate-repository-hdfs-${version}.jar"
-    into 'parts/crate/plugins'
+task deleteUpstreamSource(type: Delete) {
+    delete "src/main/java"
+}
+
+task copyJarToClassPath {
+    dependsOn jar, downloadCrateRelease, getVersion
+    doLast {
+        copy {
+            from "build/libs/crate-repository-hdfs-${version}.jar"
+            into 'parts/crate/plugins'
+        }
+    }
 }
 
 ext {
     downloadDir = new File(rootDir, 'downloads')
 }
 
+task copyHadoop12ToCrate(type: Copy, dependsOn: [deleteCrateDownloadFolder, downloadCrateRelease]) {
+    from configurations.hadoop1
+    into 'parts/crate/lib'
+}
 
-test {
+task copyHadoop2ToCrate(type: Copy, dependsOn: [deleteCrateDownloadFolder, downloadCrateRelease]) {
+    from configurations.hadoop2
+    into 'parts/crate/lib'
+}
+
+task testHadoop12(type: Test) {
+    dependsOn copyHadoop12ToCrate, copyJarToClassPath
+}
+
+task testHadoop2(type: Test) {
+    dependsOn copyHadoop2ToCrate, copyJarToClassPath
+
+    testLogging.showStandardStreams = true
+    outputs.upToDateWhen { false }
+}
+
+tasks.withType(Test) {
     // show standard out and standard error of the test JVM(s) on the console
     testLogging.showStandardStreams = true
     outputs.upToDateWhen { false }
+}
 
+
+test {
     dependsOn downloadCrateRelease, copyJarToClassPath
 }
 
 clean {
-    dependsOn deleteCrateDownloadFolder
+    dependsOn deleteCrateDownloadFolder, deleteUpstreamSource
 }
 
 compileJava {
