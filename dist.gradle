@@ -1,12 +1,13 @@
 apply plugin: 'maven'
 apply plugin: 'signing'
 
+group = "io.crate"
 
 task getVersion ( dependsOn: 'classes') << {
     ext.gitTag = "git describe".execute().in.text.trim()
 
     if (!gradle.taskGraph.hasTask(uploadArchives)) {
-        ext.version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
+        version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
     }
 
     logger.quiet("gitTag: " + gitTag)
@@ -39,8 +40,6 @@ task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
 }
 
 task buildJavadocJar (dependsOn: [getVersion, myJavadocs] ) << {
-    ext.version = getVersion.version
-    project.version = ext.version
     tasks.javadocJar.execute()
 }
 
@@ -53,8 +52,6 @@ task sourceJar (type : Jar) {
 }
 
 task buildSourceJar (dependsOn: [getVersion] ) << {
-    ext.version = getVersion.version
-    project.version = ext.version
     tasks.sourceJar.execute()
 }
 
