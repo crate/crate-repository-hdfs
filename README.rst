@@ -13,10 +13,11 @@
 =====================================
 
 The ``crate-repository-hdfs`` plugin enables `Crate`_ to support ``hdfs``
-file-system as a repository for `snapshot/restore`_.
+file-system as a repository for `snapshot/restore`_. It is bundled
+with any `Crate`_ distribution starting with version *0.53*.
 
-This plugin is derived from the `elasticsearch-repository-hdfs
-<https://github.com/elastic/elasticsearch-hadoop>`__ plugin.
+This plugin is derived from the `elasticsearch-repository-hdfs`_ plugin.
+
 
 Requirements
 ============
@@ -24,71 +25,6 @@ Requirements
 -  `Crate`_ (version *0.53* or higher).
 -  HDFS accessible file-system (from the Crate classpath)
 
-Flavors
-=======
-
-The HDFS snapshot/restore plugin comes in three flavors:
-
-:Default (Light): The default version contains just the plugin jar without any
-          Hadoop dependencies.
-
-:Hadoop 1.x: The ``hadoop12`` version contains the plugin jar
-             alongside Hadoop 1.x (stable) dependencies
-
-:Hadoop 2.x: The ``hadoop2`` version contains the plugin jar
-                    plus the Hadoop 2.x (Yarn) dependencies.
-
-What version to use?
---------------------
-
-It depends on whether you have Hadoop installed on your nodes or
-not. If you do, then we recommend exposing Hadoop to the Crate
-classpath and using the default version. This guarantees the existing
-libraries and configuration are being picked up by the plugin. If you
-do not have Hadoop installed, then select either the ``hadoop12``
-version (for Hadoop stable/1.x) or, if you are using Hadoop 2, the
-``hadoop2`` version.
-
-Installation
-============
-
-The HDFS Snapshot/Restore is a `Crate`_ plugin - be sure to familiarize
-with what these are and how they work by reading the `plugins chapter
-<https://crate.io/docs/en/latest/plugins.html>`__ in the Crate documentation.
-
-Node restart
-------------
-
-*After* installing the plugin on *every* `Crate`_ node, be sure to
-*restart* it. This applies to *all* nodes on which the plugins have
-been installed - without restarting the nodes, the plugin will not
-function properly.
-
-
-Configuration Properties
-========================
-
-Once installed, define the configuration for the ``hdfs`` repository
-through ``crate.yml`` or the `REST
-API <http://www.elastic.co/guide/en/elasticsearch/reference/current/modules-snapshots.html>`__:
-
-::
-
-    repositories
-      hdfs:
-        uri: "hdfs://<host>:<port>/"    # optional - Hadoop file-system URI
-        path: "some/path"               # required - path with the file-system where data is stored/loaded
-        load_defaults: "true"           # optional - whether to load the default Hadoop configuration (default) or not
-        conf_location: "extra-cfg.xml"  # optional - Hadoop configuration XML to be loaded (use commas for multi values)
-        conf.<key> : "<value>"          # optional - 'inlined' key=value added to the Hadoop configuration
-        concurrent_streams: 5           # optional - the number of concurrent streams (defaults to 5)
-        compress: "false"               # optional - whether to compress the metadata or not (default)
-        chunk_size: "10mb"              # optional - chunk size (disabled by default)
-
-NOTE: Be careful when including a paths within the ``uri``
-setting. Some implementations ignore them completely while others
-consider them. In general, we recommend keeping the ``uri`` to a
-minimum and using the ``path`` element instead.
 
 Plugging other file-systems
 ===========================
@@ -137,5 +73,6 @@ software solely pursuant to the terms of the relevant commercial agreement.
 
 
 .. _Crate: https://github.com/crate/crate
-.. _snapshot/restore: http://www.elasticsearch.org/guide/en/elasticsearch/reference/master/modules-snapshots.html>
+.. _snapshot/restore: https://crate.io/docs/en/latest/sql/backup_restore.html
 .. _Freenode: http://freenode.net
+.. _elasticsearch-repository-hdfs: https://github.com/elastic/elasticsearch-hadoop/tree/2.1/repository-hdfs

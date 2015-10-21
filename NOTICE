@@ -1,0 +1,26 @@
+Crate
+Copyright 2013-2015 CRATE Technology GmbH ("Crate")
+
+
+Third party dependencies:
+
+=========================================================================
+
+Lucene
+http://lucene.apache.org/
+developed by The Apache Software Foundation
+License: Apache License v2 (http://www.apache.org/licenses)
+
+=========================================================================
+
+Elasticsearch
+http://www.elasticsearch.org/
+developed by Elastic and Shay Banon
+License: Apache License v2 (http://www.apache.org/licenses)
+
+=========================================================================
+
+Hadoop
+http://hadoop.apache.org/
+developed by The Apache Software Foundation
+License: Apache License v2 (http://www.apache.org/licenses)
