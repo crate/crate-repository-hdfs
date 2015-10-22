@@ -1,4 +1,4 @@
-description = 'Crate HDFS Repository'
+description = 'Crate HDFS Repository Plugin'
 
 buildscript {
     repositories {

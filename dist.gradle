@@ -20,7 +20,7 @@ jar {
     baseName 'crate-repository-hdfs'
     doLast {
         manifest {
-            attributes("Implementation-Title": "Crate.IO HDFS Repository", "Implementation-Version": project.version)
+            attributes("Implementation-Title": "Crate.IO HDFS Repository Plugin", "Implementation-Version": project.version)
         }
     }
 }
@@ -35,7 +35,7 @@ task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
     classifier = 'javadoc'
     from myJavadocs.destinationDir
     manifest {
-        attributes("Implementation-Title": "Crate.IO JDBC Driver")
+        attributes("Implementation-Title": "Crate.IO HDFS Repository Plugin")
     }
 }
 
@@ -47,7 +47,7 @@ task sourceJar (type : Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource
     manifest {
-        attributes("Implementation-Title": "Crate.IO JDBC Driver")
+        attributes("Implementation-Title": "Crate.IO HDFS Repository Plugin")
     }
 }
 
@@ -116,7 +116,7 @@ uploadArchives {
             pomJdbc.project {
                 artifactId 'crate-repository-hdfs'
                 name 'crate-repository-hdfs'
-                description 'Crate.IO HDFS Repository'
+                description 'Crate.IO HDFS Repository Plugin'
                 url project.ext.url
                 scm project.ext.scm
                 licenses project.ext.licenses
