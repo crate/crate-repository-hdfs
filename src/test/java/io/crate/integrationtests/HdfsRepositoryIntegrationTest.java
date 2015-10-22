@@ -98,7 +98,6 @@ public class HdfsRepositoryIntegrationTest extends RandomizedTest {
                 .setSettings(ImmutableSettings.settingsBuilder()
                                 .put("uri", "file://./")
                                 .put("path", path)
-                                .put("conf", "additional-cfg.xml, conf-2.xml")
                                 .put("chunk_size", randomIntBetween(100, 1000))
                                 .put("compress", randomBoolean())
                 ).get();
