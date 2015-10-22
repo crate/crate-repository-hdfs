@@ -34,9 +34,13 @@ configurations {
 dependencies {
     provided("org.apache.hadoop:hadoop-core:$hadoop12Version")
     provided("io.crate:crate:$crateVersion")
+
     testCompile "io.crate:crate:$crateVersion"
-    testCompile "org.apache.lucene:lucene-test-framework:$luceneVersion"
+    testCompile "junit:junit:$junitVersion"
     testCompile "org.hamcrest:hamcrest-all:$hamcrestVersion"
+    testCompile ("com.carrotsearch.randomizedtesting:randomizedtesting-runner:$randomizedTestingVersion") {
+        exclude group: 'junit', module: 'junit'
+    }
 
     hadoop1("org.apache.hadoop:hadoop-core:$hadoop12Version") {
         exclude group: "com.sun.jersey"
