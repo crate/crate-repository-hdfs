@@ -188,6 +188,14 @@ task copyHadoop2ToCrate(type: Copy, dependsOn: [deleteCrateDownloadFolder, downl
     into 'parts/crate/lib'
 }
 
+task printHadoop12Libraries << {
+    configurations.hadoop1.each { File file -> println file.name }
+}
+
+task printHadoop2Libraries << {
+    configurations.hadoop2.each { File file -> println file.name }
+}
+
 task testHadoop12(type: Test) {
     dependsOn copyHadoop12ToCrate, copyJarToClassPath
 }
