@@ -156,9 +156,9 @@ public class HdfsRepositoryIntegrationTest extends RandomizedTest {
 
         // Test restore after index deletion
         LOGGER.info("--> delete indices");
-        crateClient.sql("drop table test_idx_1");
-        crateClient.sql("drop table test_idx_2");
-        crateClient.sql("drop table test_idx_3");
+        crateClient.sql("drop table test_idx_1").actionGet();
+        crateClient.sql("drop table test_idx_2").actionGet();
+        crateClient.sql("drop table test_idx_3").actionGet();
         LOGGER.info("--> restore one index after deletion");
         restoreSnapshotResponse = transportClient.admin().cluster().prepareRestoreSnapshot("test-repo", "test-snap").setWaitForCompletion(true).setIndices("test_idx_*", "-test_idx_2").execute().actionGet();
         assertThat(restoreSnapshotResponse.getRestoreInfo().totalShards(), greaterThan(0));
