@@ -79,6 +79,7 @@ dependencies {
         exclude group: "log4j"
         exclude group: "org.slf4j"
         exclude group: "org.apache.httpcomponents"
+        exclude group: "io.netty"
     }
 }
 
