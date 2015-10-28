@@ -23,13 +23,12 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.testing.CrateTestServer;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.ClusterState;
@@ -40,14 +39,12 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.snapshots.SnapshotState;
 import org.hamcrest.Matchers;
 import org.junit.*;
 
 import java.util.Locale;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
 
 public class HdfsRepositoryIntegrationTest extends RandomizedTest {
 
@@ -121,11 +118,9 @@ public class HdfsRepositoryIntegrationTest extends RandomizedTest {
         assertThat(transportClient.prepareCount("test_idx_3").get().getCount(), equalTo(100L));
 
         LOGGER.info("--> snapshot");
-        CreateSnapshotResponse createSnapshotResponse = transportClient.admin().cluster().prepareCreateSnapshot("test-repo", "test-snap").setWaitForCompletion(true).setIndices("test_idx_*", "-test_idx_3").get();
-        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), greaterThan(0));
-        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
-
-        assertThat(transportClient.admin().cluster().prepareGetSnapshots("test-repo").setSnapshots("test-snap").get().getSnapshots().get(0).state(), equalTo(SnapshotState.SUCCESS));
+        crateClient.sql(new SQLRequest("CREATE SNAPSHOT \"test-repo\".\"test-snap\" TABLE test_idx_1, test_idx_2 with(wait_for_completion=true)")).actionGet();
+        SQLResponse response = crateClient.sql("SELECT state FROM sys.snapshots where name = 'test-snap'").actionGet();
+        assertThat((String)response.rows()[0][0], equalTo("SUCCESS"));
 
         LOGGER.info("--> delete some data");
         for (int i = 0; i < 50; i++) {
@@ -146,8 +141,7 @@ public class HdfsRepositoryIntegrationTest extends RandomizedTest {
         transportClient.admin().indices().prepareClose("test_idx_1", "test_idx_2").get();
 
         LOGGER.info("--> restore all indices from the snapshot");
-        RestoreSnapshotResponse restoreSnapshotResponse = transportClient.admin().cluster().prepareRestoreSnapshot("test-repo", "test-snap").setWaitForCompletion(true).execute().actionGet();
-        assertThat(restoreSnapshotResponse.getRestoreInfo().totalShards(), greaterThan(0));
+        crateClient.sql(new SQLRequest("RESTORE SNAPSHOT \"test-repo\".\"test-snap\" ALL")).actionGet();
 
         ensureGreen();
         assertThat(transportClient.prepareCount("test_idx_1").get().getCount(), equalTo(100L));
@@ -160,8 +154,7 @@ public class HdfsRepositoryIntegrationTest extends RandomizedTest {
         crateClient.sql("drop table test_idx_2").actionGet();
         crateClient.sql("drop table test_idx_3").actionGet();
         LOGGER.info("--> restore one index after deletion");
-        restoreSnapshotResponse = transportClient.admin().cluster().prepareRestoreSnapshot("test-repo", "test-snap").setWaitForCompletion(true).setIndices("test_idx_*", "-test_idx_2").execute().actionGet();
-        assertThat(restoreSnapshotResponse.getRestoreInfo().totalShards(), greaterThan(0));
+        crateClient.sql(new SQLRequest("RESTORE SNAPSHOT \"test-repo\".\"test-snap\" TABLE test_idx_1")).actionGet();
         ensureGreen();
         assertThat(transportClient.prepareCount("test_idx_1").get().getCount(), equalTo(100L));
         ClusterState clusterState = transportClient.admin().cluster().prepareState().get().getState();
