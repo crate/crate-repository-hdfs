@@ -32,7 +32,7 @@ configurations {
 }
 
 dependencies {
-    provided("org.apache.hadoop:hadoop-core:$hadoop12Version")
+    provided("org.apache.hadoop:hadoop-client:$hadoop2Version")
     provided("io.crate:crate:$crateVersion")
 
     testCompile "io.crate:crate:$crateVersion"
@@ -66,7 +66,6 @@ dependencies {
         exclude module: "hsqldb"
         exclude group: "org.eclipse.jdt"
         exclude module: "commons-beanutils"
-        exclude module: "javax.servlet"
         exclude module: "hadoop-mapreduce-client-app"
         exclude module: "hadoop-mapreduce-client-core"
         exclude module: "hadoop-mapreduce-client-jobclient"
@@ -80,6 +79,9 @@ dependencies {
         exclude group: "org.slf4j"
         exclude group: "org.apache.httpcomponents"
         exclude group: "io.netty"
+    }
+    if (hadoop2Version.equals("2.7.1")) {
+        hadoop2("javax.servlet:servlet-api:2.5")
     }
 }
 
