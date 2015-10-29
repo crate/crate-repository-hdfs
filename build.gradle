@@ -135,9 +135,10 @@ def extractTopfolder(File src, String trg){
 }
 
 task downloadCrateRelease << {
-    def dest = download(
-            "https://cdn.crate.io/downloads/releases/crate-${crateVersion}.tar.gz",
-            "crate-${crateVersion}.tar.gz")
+    //def dest = download(
+    //        "https://cdn.crate.io/downloads/releases/crate-${crateVersion}.tar.gz",
+    //        "crate-${crateVersion}.tar.gz")
+    def dest = new File("/Users/max/develop/projects/crate/crate/app/build/distributions/crate-0.52.0-SNAPSHOT-22b3638.tar.gz")
     extractTopfolder(dest, 'parts/crate')
 }
 
@@ -146,6 +147,9 @@ task deleteCrateDownloadFolder(type: Delete) {
 }
 
 task copyUpstreamSource << {
+    if (!file('upstream/repository-hdfs').exists()) {
+        throw new GradleException("Please run 'git submodule update --init' first")
+    }
     if (!file('src/main/java').exists()) {
         copy {
             from 'upstream/repository-hdfs/src/main/java'
@@ -216,10 +220,6 @@ tasks.withType(Test) {
     outputs.upToDateWhen { false }
 }
 
-
-test {
-    dependsOn downloadCrateRelease, copyJarToClassPath
-}
 
 clean {
     dependsOn deleteCrateDownloadFolder, deleteUpstreamSource
