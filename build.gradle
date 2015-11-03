@@ -186,12 +186,12 @@ ext {
 
 task copyHadoop12ToCrate(type: Copy, dependsOn: [deleteCrateDownloadFolder, downloadCrateRelease]) {
     from configurations.hadoop1
-    into 'parts/crate/lib'
+    into 'parts/crate/plugins/lib'
 }
 
 task copyHadoop2ToCrate(type: Copy, dependsOn: [deleteCrateDownloadFolder, downloadCrateRelease]) {
     from configurations.hadoop2
-    into 'parts/crate/lib'
+    into 'parts/crate/plugins/lib'
 }
 
 task printHadoop12Libraries << {
