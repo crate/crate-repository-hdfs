@@ -135,10 +135,9 @@ def extractTopfolder(File src, String trg){
 }
 
 task downloadCrateRelease << {
-    //def dest = download(
-    //        "https://cdn.crate.io/downloads/releases/crate-${crateVersion}.tar.gz",
-    //        "crate-${crateVersion}.tar.gz")
-    def dest = new File("/Users/max/develop/projects/crate/crate/app/build/distributions/crate-0.52.0-SNAPSHOT-22b3638.tar.gz")
+    def dest = download(
+            "https://cdn.crate.io/downloads/releases/nightly/crate-0.52.0-201511061141-c934219.tar.gz",
+            "crate-${crateVersion}.tar.gz")
     extractTopfolder(dest, 'parts/crate')
 }
 

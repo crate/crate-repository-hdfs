@@ -22,41 +22,35 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.testing.CrateTestServer;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
-import org.elasticsearch.client.Requests;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.unit.TimeValue;
-import org.hamcrest.Matchers;
 import org.junit.*;
 
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.core.Is.is;
 
+@ThreadLeakLingering(linger = 5000) // 5 sec lingering
+@ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public class HdfsRepositoryIntegrationTest extends RandomizedTest {
 
     public static final ESLogger LOGGER = Loggers.getLogger(HdfsRepositoryIntegrationTest.class);
 
     private static final String CLUSTER_NAME = "hdfs-test";
     private static CrateClient crateClient;
-    private static TransportClient transportClient;
     private String path;
 
     @ClassRule
-    public static CrateTestServer testServer = new CrateTestServer(CLUSTER_NAME);
+    public static final CrateTestServer testServer = new CrateTestServer(CLUSTER_NAME);
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -64,21 +58,12 @@ public class HdfsRepositoryIntegrationTest extends RandomizedTest {
                 testServer.crateHost,
                 testServer.transportPort
         ));
-        // ES transport client
-        Settings settings = ImmutableSettings.builder()
-                .put("plugins.load_classpath_plugins", false)
-                .put("cluster.name", CLUSTER_NAME)
-                .build();
-        transportClient = new TransportClient(settings);
-        transportClient.addTransportAddress(new InetSocketTransportAddress(testServer.crateHost, testServer.transportPort));
     }
 
     @AfterClass
     public static void afterClass() throws Exception {
         crateClient.close();
         crateClient = null;
-        transportClient.close();
-        transportClient = null;
     }
 
     @Before
@@ -87,93 +72,57 @@ public class HdfsRepositoryIntegrationTest extends RandomizedTest {
     }
 
     @Test
-    public void testSimpleWorkflowWithElasticSearchAPI() {
+    public void testSimpleWorkflow() {
         LOGGER.info("-->  creating hdfs repository with path [{}]", path);
 
-        PutRepositoryResponse putRepositoryResponse = transportClient.admin().cluster().preparePutRepository("test-repo")
-                .setType("hdfs")
-                .setSettings(ImmutableSettings.settingsBuilder()
-                                .put("uri", "file://./")
-                                .put("path", path)
-                                .put("chunk_size", randomIntBetween(100, 1000))
-                                .put("compress", randomBoolean())
-                ).get();
-        assertThat(putRepositoryResponse.isAcknowledged(), equalTo(true));
+        exec("create repository \"test-repo\" type hdfs with (uri = 'file://./', path = ?, chunk_size = ?, compress = ?)",
+             $(path, randomIntBetween(10, 100), randomBoolean()));
 
-        crateClient.sql("create table test_idx_1 (id int primary key) with(number_of_replicas=0)").actionGet();
-        crateClient.sql("create table test_idx_2 (id int primary key) with(number_of_replicas=0)").actionGet();
-        crateClient.sql("create table test_idx_3 (id int primary key) with(number_of_replicas=0)").actionGet();
-
-        ensureGreen();
+        exec("create table t1 (id int primary key) with(number_of_replicas=0)");
+        exec("create table t2 (id int primary key) with(number_of_replicas=0)");
+        exec("create table t3 (id int primary key) with(number_of_replicas=0)");
 
         LOGGER.info("--> indexing some data");
+        Object[][] bulkArgs = new Object[100][0];
         for (int i = 0; i < 100; i++) {
-            crateClient.sql(new SQLRequest("insert into test_idx_1 (id) values (?)", new Object[]{i})).actionGet();
-            crateClient.sql(new SQLRequest("insert into test_idx_2 (id) values (?)", new Object[]{i})).actionGet();
-            crateClient.sql(new SQLRequest("insert into test_idx_3 (id) values (?)", new Object[]{i})).actionGet();
+            bulkArgs[i] = $(i);
         }
-        refresh();
-        assertThat(transportClient.prepareCount("test_idx_1").get().getCount(), equalTo(100L));
-        assertThat(transportClient.prepareCount("test_idx_2").get().getCount(), equalTo(100L));
-        assertThat(transportClient.prepareCount("test_idx_3").get().getCount(), equalTo(100L));
+        exec("insert into t1 (id) values (?)", bulkArgs);
+        exec("insert into t2 (id) values (?)", bulkArgs);
+        exec("insert into t3 (id) values (?)", bulkArgs);
+        exec("refresh table t1, t2, t3");
+
 
         LOGGER.info("--> snapshot");
-        crateClient.sql(new SQLRequest("CREATE SNAPSHOT \"test-repo\".\"test-snap\" TABLE test_idx_1, test_idx_2 with(wait_for_completion=true)")).actionGet();
-        SQLResponse response = crateClient.sql("SELECT state FROM sys.snapshots where name = 'test-snap'").actionGet();
-        assertThat((String)response.rows()[0][0], equalTo("SUCCESS"));
+        exec("create snapshot \"test-repo\".\"test-snap\" TABLE t1, t2 with(wait_for_completion=true)");
+        SQLResponse response = exec("SELECT state FROM sys.snapshots where name = 'test-snap'");
+        assertThat((String)response.rows()[0][0], is("SUCCESS"));
 
         LOGGER.info("--> delete some data");
-        for (int i = 0; i < 50; i++) {
-            crateClient.sql(new SQLRequest("delete from test_idx_1 where id = ?", new Object[]{i})).actionGet();
-        }
-        for (int i = 50; i < 100; i++) {
-            crateClient.sql(new SQLRequest("delete from test_idx_2 where id = ?", new Object[]{i})).actionGet();
-        }
         for (int i = 0; i < 100; i += 2) {
-            crateClient.sql(new SQLRequest("delete from test_idx_3 where id = ?", new Object[]{i})).actionGet();
+            exec("delete from t3 where id = ?", $(i));
         }
-        refresh();
-        assertThat(transportClient.prepareCount("test_idx_1").get().getCount(), equalTo(50L));
-        assertThat(transportClient.prepareCount("test_idx_2").get().getCount(), equalTo(50L));
-        assertThat(transportClient.prepareCount("test_idx_3").get().getCount(), equalTo(50L));
+        exec("refresh table t3");
 
-        LOGGER.info("--> close indices");
-        transportClient.admin().indices().prepareClose("test_idx_1", "test_idx_2").get();
+        LOGGER.info("--> drop tables");
+        exec("drop table t1");
+        exec("drop table t2");
 
         LOGGER.info("--> restore all indices from the snapshot");
-        crateClient.sql(new SQLRequest("RESTORE SNAPSHOT \"test-repo\".\"test-snap\" ALL")).actionGet();
+        exec("RESTORE SNAPSHOT \"test-repo\".\"test-snap\" ALL with (wait_for_completion = true)");
 
-        ensureGreen();
-        assertThat(transportClient.prepareCount("test_idx_1").get().getCount(), equalTo(100L));
-        assertThat(transportClient.prepareCount("test_idx_2").get().getCount(), equalTo(100L));
-        assertThat(transportClient.prepareCount("test_idx_3").get().getCount(), equalTo(50L));
-
-        // Test restore after index deletion
-        LOGGER.info("--> delete indices");
-        crateClient.sql("drop table test_idx_1").actionGet();
-        crateClient.sql("drop table test_idx_2").actionGet();
-        crateClient.sql("drop table test_idx_3").actionGet();
-        LOGGER.info("--> restore one index after deletion");
-        crateClient.sql(new SQLRequest("RESTORE SNAPSHOT \"test-repo\".\"test-snap\" TABLE test_idx_1")).actionGet();
-        ensureGreen();
-        assertThat(transportClient.prepareCount("test_idx_1").get().getCount(), equalTo(100L));
-        ClusterState clusterState = transportClient.admin().cluster().prepareState().get().getState();
-        assertThat(clusterState.getMetaData().hasIndex("test_idx_1"), equalTo(true));
-        assertThat(clusterState.getMetaData().hasIndex("test_idx_2"), equalTo(false));
+        assertThat(((long) exec("select count(*) from t1").rows()[0][0]), is(100L));
+        assertThat(((long) exec("select count(*) from t2").rows()[0][0]), is(100L));
+        assertThat(((long) exec("select count(*) from t3").rows()[0][0]), is(50L)); // not restored because still existed
     }
 
-    private void ensureGreen() {
-        ClusterHealthResponse actionGet = transportClient.admin().cluster()
-                .health(Requests.clusterHealthRequest().timeout(TimeValue.timeValueSeconds(30))
-                        .waitForGreenStatus().waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)).actionGet();
-        if (actionGet.isTimedOut()) {
-            LOGGER.info("ensureGreen timed out, cluster state:\n{}\n{}", transportClient.admin().cluster().prepareState().get().getState().prettyPrint(), transportClient.admin().cluster().preparePendingClusterTasks().get().prettyPrint());
-            fail("timed out waiting for green state");
-        }
-        assertThat(actionGet.getStatus(), Matchers.equalTo(ClusterHealthStatus.GREEN));
+    private SQLResponse exec(String statement) {
+        return exec(statement, new Object[0]);
     }
-
-    private void refresh() {
-        transportClient.admin().indices().prepareRefresh().execute().actionGet();
+    private SQLResponse exec(String statement, Object[] args) {
+        return crateClient.sql(new SQLRequest(statement, args)).actionGet(10, TimeUnit.SECONDS);
+    }
+    private SQLBulkResponse exec(String statement, Object[][] bulkArgs) {
+        return crateClient.bulkSql(new SQLBulkRequest(statement, bulkArgs)).actionGet(10, TimeUnit.SECONDS);
     }
 }
