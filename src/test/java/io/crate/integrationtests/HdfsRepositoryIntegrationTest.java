@@ -50,7 +50,7 @@ public class HdfsRepositoryIntegrationTest extends RandomizedTest {
     private String path;
 
     @ClassRule
-    public static final CrateTestServer testServer = new CrateTestServer(CLUSTER_NAME);
+    public static final CrateTestServer testServer = new CrateTestServer(CLUSTER_NAME, "0.52.2");
 
     @BeforeClass
     public static void beforeClass() throws Exception {

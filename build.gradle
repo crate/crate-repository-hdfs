@@ -35,7 +35,7 @@ dependencies {
     provided("org.apache.hadoop:hadoop-client:$hadoop2Version")
     provided("io.crate:crate:$crateVersion")
 
-    testCompile "io.crate:crate:$crateVersion"
+    testCompile "io.crate:crate-testing:0.0.2"
     testCompile "junit:junit:$junitVersion"
     testCompile "org.hamcrest:hamcrest-all:$hamcrestVersion"
     testCompile ("com.carrotsearch.randomizedtesting:randomizedtesting-runner:$randomizedTestingVersion") {
