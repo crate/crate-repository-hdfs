@@ -35,7 +35,7 @@ dependencies {
     provided("org.apache.hadoop:hadoop-client:$hadoop2Version")
     provided("io.crate:crate:$crateVersion")
 
-    testCompile "io.crate:crate-testing:0.0.2"
+    testCompile "io.crate:crate-testing:$crateTestingVersion"
     testCompile "junit:junit:$junitVersion"
     testCompile "org.hamcrest:hamcrest-all:$hamcrestVersion"
     testCompile ("com.carrotsearch.randomizedtesting:randomizedtesting-runner:$randomizedTestingVersion") {
@@ -81,7 +81,7 @@ dependencies {
         exclude group: "io.netty"
     }
     if (hadoop2Version.equals("2.7.1")) {
-        hadoop2("javax.servlet:servlet-api:2.5")
+        hadoop2("javax.servlet:servlet-api:$javaxServletApiVersion")
     }
 }
 
@@ -136,7 +136,7 @@ def extractTopfolder(File src, String trg){
 
 task downloadCrateRelease << {
     def dest = download(
-            "https://cdn.crate.io/downloads/releases/nightly/crate-0.52.0-201511061141-c934219.tar.gz",
+            "https://cdn.crate.io/downloads/releases/crate-${crateVersion}.tar.gz",
             "crate-${crateVersion}.tar.gz")
     extractTopfolder(dest, 'parts/crate')
 }
