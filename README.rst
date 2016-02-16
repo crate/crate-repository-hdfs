@@ -42,7 +42,7 @@ Help & Contact
 ==============
 
 Do you have any questions? Or suggestions? We would be very happy
-to help you. So, feel free to swing by our IRC channel #crate on Freenode_.
+to help you. So, feel free to swing by our support channel on Slack_.
 Or for further information and official contact please
 visit `https://crate.io/ <https://crate.io/>`_.
 
@@ -74,5 +74,5 @@ software solely pursuant to the terms of the relevant commercial agreement.
 
 .. _Crate: https://github.com/crate/crate
 .. _snapshot/restore: https://crate.io/docs/en/latest/sql/backup_restore.html
-.. _Freenode: http://freenode.net
+.. _Slack: https://crate.io/docs/support/slackin/
 .. _elasticsearch-repository-hdfs: https://github.com/elastic/elasticsearch-hadoop/tree/2.1/repository-hdfs
