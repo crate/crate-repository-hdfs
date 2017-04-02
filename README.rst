@@ -1,78 +1,66 @@
-.. image:: https://cdn.crate.io/web/2.0/img/crate-avatar_100x100.png
-    :width: 100px
-    :height: 100px
-    :alt: Crate.IO
-    :target: https://crate.io
+==============================
+HDFS Snapshot & Restore Plugin
+==============================
 
 .. image:: https://travis-ci.org/crate/crate-repository-hdfs.svg?branch=master
     :target: https://travis-ci.org/crate/crate-repository-hdfs
     :alt: Test Status
 
-=====================================
- Hadoop HDFS Snapshot/Restore plugin
-=====================================
+|
 
-The ``crate-repository-hdfs`` plugin enables `Crate`_ to support ``hdfs``
-file-system as a repository for `snapshot/restore`_. It is bundled
-with any `Crate`_ distribution starting with version *0.53*.
+A CrateDB_ plugin that enables `Apache Hadoop HDFS`_ support for `snapshots and
+restore`_.
 
-This plugin is derived from the `elasticsearch-repository-hdfs`_ plugin.
+This plugin is bundled with any CrateDB 0.53 and higher.
 
+Prerequisites
+=============
 
-Requirements
+You will need:
+
+- CrateDB 0.53 or higher
+- A HDFS compatible file system accessible from the CrateDB class path
+
+Supported File Systems
+======================
+
+Any HDFS compatible file system (like Amazon S3 or `Google Cloud Storage`_) can
+be used as long as the proper Hadoop configuration is passed to the plugin.
+
+Make sure the correct Hadoop configuration files (``core-site.xml`` and
+``hdfs-site.xml``) and its JAR files are available on the plugin class path,
+just as you would with any other Hadoop client or job. Otherwise, the plugin
+will only read the default configuration of Hadoop and will not recognize the
+plugged in file-system.
+
+Contributing
 ============
 
--  `Crate`_ (version *0.53* or higher).
--  HDFS accessible file-system (from the Crate classpath)
+This project is primarily maintained by `Crate.io`_, but we welcome community
+contributions!
 
+See the `developer docs`_ and the `contribution docs`_ for more information.
 
-Plugging other file-systems
-===========================
+Help
+====
 
-Any HDFS-compatible file-systems (like Amazon ``s3://`` or Google
-``gs://``) can be used as long as the proper Hadoop configuration is
-passed to the Crate plugin. In practice, this means making sure the
-correct Hadoop configuration files (``core-site.xml`` and
-``hdfs-site.xml``) and its jars are available in plugin classpath,
-just as you would with any other Hadoop client or job. Otherwise, the
-plugin will only read the *default*, vanilla configuration of Hadoop
-and will not be able to recognized the plugged in file-system.
+Looking for more help?
 
-Help & Contact
-==============
+- Read `the project documentation`_
+- Check `StackOverflow`_ for common problems
+- Chat with us on `Slack`_
+- Get `paid support`_
 
-Do you have any questions? Or suggestions? We would be very happy
-to help you. So, feel free to swing by our support channel on Slack_.
-Or for further information and official contact please
-visit `https://crate.io/ <https://crate.io/>`_.
-
-License
-=======
-
-Copyright 2013-2015 CRATE Technology GmbH ("Crate")
-
-Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
-license agreements.  See the NOTICE file distributed with this work for
-additional information regarding copyright ownership.  Crate licenses
-this file to you under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.  You may
-obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
-License for the specific language governing permissions and limitations
-under the License.
-
-However, if you have executed another commercial license agreement
-with Crate these terms will supersede the license and you may use the
-software solely pursuant to the terms of the relevant commercial agreement.
-
-
-
-.. _Crate: https://github.com/crate/crate
-.. _snapshot/restore: https://crate.io/docs/en/latest/sql/backup_restore.html
-.. _Slack: https://crate.io/docs/support/slackin/
+.. _Amazon S3: https://aws.amazon.com/s3/
+.. _Apache Hadoop HDFS: https://hortonworks.com/apache/hdfs/
+.. _contribution docs: CONTRIBUTING.rst
+.. _Crate.io: http://crate.io/
+.. _CrateDB: https://github.com/crate/crate
+.. _developer docs: DEVELOP.rst
 .. _elasticsearch-repository-hdfs: https://github.com/elastic/elasticsearch-hadoop/tree/2.1/repository-hdfs
+.. _Google Cloud Storage: https://cloud.google.com/storage/
+.. _paid support: https://crate.io/pricing/
+.. _Slack: https://crate.io/docs/support/slackin/
+.. _snapshots and restore: https://crate.io/docs/en/latest/sql/backup_restore.html
+.. _StackOverflow: https://stackoverflow.com/tags/crate
+.. _the project documentation: https://crate.io/docs/en/latest/sql/backup_restore.html
