@@ -46,9 +46,8 @@ Help
 
 Looking for more help?
 
-- Read `the project documentation`_
-- Chat with us via our `support channel`_
-- Get `paid support`_
+- Read `project docs`_
+- Check out our `support channels`_
 
 .. _Amazon S3: https://aws.amazon.com/s3/
 .. _Apache Hadoop HDFS: https://hortonworks.com/apache/hdfs/
@@ -58,7 +57,6 @@ Looking for more help?
 .. _developer docs: DEVELOP.rst
 .. _elasticsearch-repository-hdfs: https://github.com/elastic/elasticsearch-hadoop/tree/2.1/repository-hdfs
 .. _Google Cloud Storage: https://cloud.google.com/storage/
-.. _support channel: https://crate.io/support/
-.. _paid support: https://crate.io/pricing/
+.. _support channels: https://crate.io/support/
 .. _snapshots and restore: https://crate.io/docs/en/latest/sql/backup_restore.html
-.. _the project documentation: https://crate.io/docs/en/latest/sql/backup_restore.html
+.. _project docs: https://crate.io/docs/en/latest/sql/backup_restore.html
